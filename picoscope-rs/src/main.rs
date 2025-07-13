@@ -1,21 +1,24 @@
 #![no_std]
 #![no_main]
 #![feature(impl_trait_in_assoc_type)]
+#![allow(static_mut_refs)]
 
 use core::mem::swap;
 use core::slice::from_raw_parts_mut;
 use defmt::*;
-use embassy_executor::Spawner;
+use embassy_executor::Executor;
 use embassy_rp::clocks::ClockConfig;
 use embassy_rp::config::Config;
+use embassy_rp::multicore::{spawn_core1, Stack};
 use embassy_rp::{
     bind_interrupts,
     peripherals::PIO0,
     pio::{InterruptHandler, Pio},
 };
 use embassy_time::Timer;
-use picoscope_rs::pio_converter::PioConverter;
+use picoscope_rs::pio_pins_listener::PioPinsListener;
 use portable_atomic::{AtomicBool, Ordering};
+use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
@@ -28,6 +31,9 @@ struct DBuffer {
     active: *mut u8,
     background: *mut u8,
 }
+static mut CORE1_STACK: Stack<4096> = Stack::new();
+static EXECUTOR0: StaticCell<Executor> = StaticCell::new();
+static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 
 static mut BUFFER1: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
 static mut BUFFER2: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
@@ -43,7 +49,7 @@ unsafe impl Sync for DBuffer {}
 impl DBuffer {
     async fn swap(&mut self) {
         while !IS_READING_DONE.load(Ordering::Relaxed) {
-            Timer::after_ticks(1).await;
+            // Timer::after_ticks(1).await;
         }
         IS_READING_DONE.store(false, Ordering::Relaxed);
         swap(&mut self.active, &mut self.background);
@@ -70,9 +76,8 @@ impl DBuffer {
     }
 }
 
-#[embassy_executor::main]
-async fn main(spawner: Spawner) -> ! {
-    info!("Started");
+#[cortex_m_rt::entry]
+fn main() -> ! {
     let config = ClockConfig::system_freq(200_000_000).unwrap();
     let cfg = Config::new(config);
     let p = embassy_rp::init(cfg);
@@ -81,38 +86,51 @@ async fn main(spawner: Spawner) -> ! {
         mut common, sm0, ..
     } = Pio::new(p.PIO0, Irqs);
 
-    let mut pio_converter = PioConverter::new(
+    let mut pins_listener = PioPinsListener::new(
         &mut common,
         sm0,
         p.DMA_CH0,
-        p.PIN_2, // out 0
-        p.PIN_3, // out 1
-        p.PIN_4, // out 2
-        p.PIN_5, // out 3
-        p.PIN_6, // out 4
-        p.PIN_7, // out 5
-        p.PIN_8, // out 6
-        p.PIN_9, // out 7
+        p.PIN_2, // in 0
+        p.PIN_3, // in 1
+        p.PIN_4, // in 2
+        p.PIN_5, // in 3
+        p.PIN_6, // in 4
+        p.PIN_7, // in 5
+        p.PIN_8, // in 6
+        p.PIN_9, // in 7
     );
 
-    info!("Begin");
+    spawn_core1(
+        p.CORE1,
+        unsafe { &mut *core::ptr::addr_of_mut!(CORE1_STACK) },
+        move || {
+            let executor1 = EXECUTOR1.init(Executor::new());
+            executor1.run(|spawner| unwrap!(spawner.spawn(core1_task(pins_listener))));
+        },
+    );
 
-    unwrap!(spawner.spawn(tmp()));
+    let executor0 = EXECUTOR0.init(Executor::new());
+    executor0.run(|spawner| unwrap!(spawner.spawn(core0_task())));
+}
+
+#[embassy_executor::task]
+async fn core1_task(pins_listener: PioPinsListener<'static, PIO0, 0>) -> ! {
+    info!("Started");
 
     let mut counter = 0;
     loop {
         let buffer = unsafe { BUFFER.get_active() };
-        // pio_converter.work(buffer).await;
+        // pins_listener.work(buffer).await;
         buffer[0] = counter;
         unsafe { BUFFER.swap().await };
-        Timer::after_millis(1).await;
-        counter += 1;
+        counter = counter.wrapping_add(1);
     }
 }
 
 #[embassy_executor::task]
-async fn tmp() {
+async fn core0_task() {
     loop {
+        // Timer::after_millis(1).await;
         unsafe { BUFFER.wait_for_swap().await };
         let data = unsafe { BUFFER.get_background() };
         info!("zbs {}", data[0]);

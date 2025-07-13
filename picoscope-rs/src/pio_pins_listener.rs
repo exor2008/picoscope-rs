@@ -7,13 +7,13 @@ use embassy_rp::pio::{
 use embassy_rp::Peri;
 use fixed::types::U24F8;
 
-pub struct PioConverter<'a, P: Instance, const N: usize> {
+pub struct PioPinsListener<'a, P: Instance, const N: usize> {
     dma: Peri<'a, AnyChannel>,
     sm: StateMachine<'a, P, N>,
 }
 
 #[allow(clippy::too_many_arguments)]
-impl<'a, P: Instance, const N: usize> PioConverter<'a, P, N> {
+impl<'a, P: Instance, const N: usize> PioPinsListener<'a, P, N> {
     pub fn new(
         pio: &mut Common<'a, P>,
         mut sm: StateMachine<'a, P, N>,
@@ -27,7 +27,7 @@ impl<'a, P: Instance, const N: usize> PioConverter<'a, P, N> {
         db5: Peri<'a, impl PioPin>,
         db6: Peri<'a, impl PioPin>,
         db7: Peri<'a, impl PioPin>,
-    ) -> PioConverter<'a, P, N> {
+    ) -> PioPinsListener<'a, P, N> {
         let mut db0 = pio.make_pio_pin(db0);
         let mut db1 = pio.make_pio_pin(db1);
         let mut db2 = pio.make_pio_pin(db2);
@@ -75,14 +75,14 @@ impl<'a, P: Instance, const N: usize> PioConverter<'a, P, N> {
         sm.set_config(&cfg);
         sm.set_enable(true);
 
-        PioConverter {
+        PioPinsListener {
             dma: dma.into(),
             sm,
         }
     }
 }
 
-impl<'a, P: Instance, const N: usize> PioConverter<'a, P, N> {
+impl<'a, P: Instance, const N: usize> PioPinsListener<'a, P, N> {
     pub async fn work(&mut self, input: &mut [u8]) {
         self.sm
             .rx()

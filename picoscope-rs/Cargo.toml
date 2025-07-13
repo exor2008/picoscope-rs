@@ -35,12 +35,13 @@ cortex-m = { version = "0.7.6", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.0"
 panic-probe = { version = "1.0.0", features = ["print-defmt"] }
 
-portable-atomic = { version = "1.11.1", default-features = false }
+portable-atomic = { version = "1.11.1", features = ["critical-section"]}
 pio-proc = "0.3.0"
 pio = "0.3.0"
 heapless = "0.8.0"
 fixed = "1.29.0"
 fixed-macro = "1.2.0"
+static_cell = "2.1.1"
 
 [profile.dev]
 debug = 2
