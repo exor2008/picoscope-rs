@@ -17,6 +17,7 @@ use embassy_rp::{
 };
 use embassy_time::Timer;
 use picoscope_rs::pio_pins_listener::PioPinsListener;
+use picoscope_rs::states::State;
 use portable_atomic::{AtomicBool, Ordering};
 use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _};
@@ -135,5 +136,8 @@ async fn core0_task() {
         let data = unsafe { BUFFER.get_background() };
         info!("zbs {}", data[0]);
         unsafe { BUFFER.reading_done() };
+
+        let mut state = State::init();
+        state = State::init();
     }
 }
