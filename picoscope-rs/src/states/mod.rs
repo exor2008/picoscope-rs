@@ -2,6 +2,8 @@ use analysys::Analysys;
 use idle::Idle;
 use record::Record;
 
+use crate::ring_buffer::RingBuffer;
+
 pub mod analysys;
 pub mod idle;
 pub mod record;
@@ -31,9 +33,9 @@ impl State {
         State::Analysys(Analysys)
     }
 
-    fn tick(&mut self) -> Self {
+    fn tick(&mut self, rbuffer: &mut RingBuffer, chunk: &[u8]) -> Self {
         match self {
-            State::Idle(state) => state.tick(),
+            State::Idle(state) => state.tick(rbuffer, chunk),
             State::Record(state) => state.tick(),
             State::Analysys(state) => state.tick(),
         }
@@ -52,7 +54,7 @@ impl ScopeStateMachine {
         }
     }
 
-    pub fn tick(&mut self) {
-        self.state = self.state.tick()
+    pub fn tick(&mut self, rbuffer: &mut RingBuffer, chunk: &[u8]) {
+        self.state = self.state.tick(rbuffer, chunk)
     }
 }

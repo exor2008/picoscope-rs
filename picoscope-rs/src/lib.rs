@@ -6,4 +6,4 @@ pub mod pio_pins_listener;
 pub mod ring_buffer;
 pub mod states;
 
-pub const BUFFER_SIZE: usize = 256;
+pub const BUFFER_SIZE: usize = 1024;
