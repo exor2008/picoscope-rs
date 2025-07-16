@@ -86,7 +86,7 @@ async fn core0_task() {
     let mut rbuffer = RingBuffer::new();
 
     loop {
-        // Timer::after_millis(1).await;
+        Timer::after_millis(100).await;
         unsafe { DBUFFER.wait_for_swap().await };
         let chunk = unsafe { DBUFFER.get_background() };
         // info!("zbs {}", chunk[0]);

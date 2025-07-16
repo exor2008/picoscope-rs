@@ -26,7 +26,7 @@ impl State {
     }
 
     pub fn record() -> Self {
-        State::Record(Record)
+        State::Record(Record::default())
     }
 
     pub fn analysys() -> Self {
@@ -36,7 +36,7 @@ impl State {
     fn tick(&mut self, rbuffer: &mut RingBuffer, chunk: &[u8]) -> Self {
         match self {
             State::Idle(state) => state.tick(rbuffer, chunk),
-            State::Record(state) => state.tick(),
+            State::Record(state) => state.tick(rbuffer, chunk),
             State::Analysys(state) => state.tick(),
         }
     }
