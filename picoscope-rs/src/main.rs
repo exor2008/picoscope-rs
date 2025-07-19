@@ -17,7 +17,8 @@ use embassy_time::Timer;
 use picoscope_rs::double_buffer::DBUFFER;
 use picoscope_rs::pio_pins_listener::PioPinsListener;
 use picoscope_rs::ring_buffer::RingBuffer;
-use picoscope_rs::states::ScopeStateMachine;
+use picoscope_rs::states::State;
+use picoscope_rs::trigger::{Trigger, TriggerKind};
 use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _};
 
@@ -82,8 +83,13 @@ async fn core1_task(pins_listener: PioPinsListener<'static, PIO0, 0>) -> ! {
 
 #[embassy_executor::task]
 async fn core0_task() {
-    let mut sm = ScopeStateMachine::new();
+    let mut state = State::idle();
     let mut rbuffer = RingBuffer::new();
+
+    let trigger = Trigger {
+        mask: 0b1000_0001,
+        kind: TriggerKind::Rising,
+    };
 
     loop {
         Timer::after_millis(100).await;
@@ -91,7 +97,11 @@ async fn core0_task() {
         let chunk = unsafe { DBUFFER.get_background() };
         // info!("zbs {}", chunk[0]);
 
-        sm.tick(&mut rbuffer, chunk);
+        state = match state {
+            State::Idle(ref mut st) => st.tick(&mut rbuffer, chunk, &trigger),
+            State::Record(ref mut st) => st.tick(&mut rbuffer, chunk),
+            State::Analysys(st) => st.tick(),
+        };
 
         unsafe { DBUFFER.reading_done() };
     }

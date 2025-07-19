@@ -5,13 +5,15 @@ pub const RBUFFER_SIZE: usize = 10;
 pub struct RingBuffer {
     buffer: [[u8; BUFFER_SIZE]; RBUFFER_SIZE],
     current: usize,
+    recorded_since: Option<usize>,
 }
 
 impl Default for RingBuffer {
     fn default() -> Self {
         RingBuffer {
             buffer: [[0; BUFFER_SIZE]; RBUFFER_SIZE],
-            current: 0,
+            current: Default::default(),
+            recorded_since: Default::default(),
         }
     }
 }
@@ -31,5 +33,17 @@ impl RingBuffer {
             current if current == RBUFFER_SIZE - 1 => 0,
             current => current + 1,
         }
+    }
+
+    pub fn current(&self) -> usize {
+        self.current
+    }
+
+    pub fn recorded_since(&self) -> Option<usize> {
+        self.recorded_since
+    }
+
+    pub fn record(&mut self) {
+        self.recorded_since = Some(self.current);
     }
 }
