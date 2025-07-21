@@ -26,10 +26,12 @@ async fn main(_spawner: Spawner) -> ! {
 
     let mut spi = Spi::new(p.SPI1, clk, mosi, miso, p.DMA_CH0, p.DMA_CH1, cfg);
 
-    cs.set_low();
-
     loop {
-        spi.write(&[0b10000100; 1024]).await.unwrap();
-        Timer::after_millis(10).await;
+        cs.set_low();
+        for _ in 0..1000 {
+            spi.write(&[0b10000100; 1024]).await.unwrap();
+        }
+        cs.set_high();
+        Timer::after_secs(10).await;
     }
 }

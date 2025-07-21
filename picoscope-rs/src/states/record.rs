@@ -9,13 +9,12 @@ pub struct Record {
 
 impl Record {
     pub fn tick(&mut self, rbuffer: &mut RingBuffer, chunk: &[u8]) -> State {
-        debug!("Record tick, counter: {}", self.counter);
-
         rbuffer.write(chunk);
 
         self.counter += 1;
 
         if self.counter == RBUFFER_SIZE - 1 {
+            debug!("Analysys state {}", self.counter);
             State::analysys()
         } else {
             State::Record(*self)

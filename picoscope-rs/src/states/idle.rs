@@ -9,12 +9,12 @@ pub struct Idle;
 
 impl Idle {
     pub fn tick(&mut self, rbuffer: &mut RingBuffer, chunk: &[u8], trigger: &Trigger) -> State {
-        debug!("Idle state tick");
-
         rbuffer.write(chunk);
 
         if self.scan_for_triggers(chunk, trigger) {
             rbuffer.record();
+            debug!("Record state");
+            debug!("{:b}", chunk);
             State::record()
         } else {
             State::idle()

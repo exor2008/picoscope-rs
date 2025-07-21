@@ -68,16 +68,16 @@ fn main() -> ! {
 }
 
 #[embassy_executor::task]
-async fn core1_task(pins_listener: PioPinsListener<'static, PIO0, 0>) -> ! {
+async fn core1_task(mut pins_listener: PioPinsListener<'static, PIO0, 0>) -> ! {
     info!("Started");
 
-    let mut counter = 0;
+    // let mut counter = 0;
     loop {
         let buffer = unsafe { DBUFFER.get_active() };
-        // pins_listener.work(buffer).await;
-        buffer[0] = counter;
+        pins_listener.work(buffer).await;
+        // buffer[0] = counter;
         unsafe { DBUFFER.swap().await };
-        counter = counter.wrapping_add(1);
+        // counter = counter.wrapping_add(1);
     }
 }
 
@@ -87,8 +87,8 @@ async fn core0_task() {
     let mut rbuffer = RingBuffer::new();
 
     let trigger = Trigger {
-        mask: 0b1000_0001,
-        kind: TriggerKind::Rising,
+        mask: 0b0000_0001,
+        kind: TriggerKind::Falling,
     };
 
     loop {
