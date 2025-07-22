@@ -4,17 +4,27 @@ use crate::{
     trigger::{Trigger, TriggerKind},
 };
 use defmt::debug;
+use embassy_time::Timer;
 
 pub struct Idle;
 
 impl Idle {
-    pub fn tick(&mut self, rbuffer: &mut RingBuffer, chunk: &[u8], trigger: &Trigger) -> State {
+    pub async fn tick(
+        &mut self,
+        rbuffer: &mut RingBuffer,
+        chunk: &[u8],
+        trigger: &Trigger,
+    ) -> State {
         rbuffer.write(chunk);
 
         if self.scan_for_triggers(chunk, trigger) {
             rbuffer.record();
             debug!("Record state");
-            debug!("{:b}", chunk);
+            for c in chunk {
+                debug!("{:03b}", c);
+                Timer::after_millis(1).await;
+            }
+
             State::record()
         } else {
             State::idle()

@@ -13,7 +13,6 @@ use embassy_rp::{
     peripherals::PIO0,
     pio::{InterruptHandler, Pio},
 };
-use embassy_time::Timer;
 use picoscope_rs::double_buffer::DBUFFER;
 use picoscope_rs::pio_pins_listener::PioPinsListener;
 use picoscope_rs::ring_buffer::RingBuffer;
@@ -32,7 +31,7 @@ static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
-    let config = ClockConfig::system_freq(200_000_000).unwrap();
+    let config = ClockConfig::system_freq(250_000_000).unwrap();
     let cfg = Config::new(config);
     let p = embassy_rp::init(cfg);
 
@@ -40,7 +39,7 @@ fn main() -> ! {
         mut common, sm0, ..
     } = Pio::new(p.PIO0, Irqs);
 
-    let mut pins_listener = PioPinsListener::new(
+    let pins_listener = PioPinsListener::new(
         &mut common,
         sm0,
         p.DMA_CH0,
@@ -71,13 +70,10 @@ fn main() -> ! {
 async fn core1_task(mut pins_listener: PioPinsListener<'static, PIO0, 0>) -> ! {
     info!("Started");
 
-    // let mut counter = 0;
     loop {
         let buffer = unsafe { DBUFFER.get_active() };
         pins_listener.work(buffer).await;
-        // buffer[0] = counter;
         unsafe { DBUFFER.swap().await };
-        // counter = counter.wrapping_add(1);
     }
 }
 
@@ -92,13 +88,11 @@ async fn core0_task() {
     };
 
     loop {
-        Timer::after_millis(100).await;
         unsafe { DBUFFER.wait_for_swap().await };
         let chunk = unsafe { DBUFFER.get_background() };
-        // info!("zbs {}", chunk[0]);
 
         state = match state {
-            State::Idle(ref mut st) => st.tick(&mut rbuffer, chunk, &trigger),
+            State::Idle(ref mut st) => st.tick(&mut rbuffer, chunk, &trigger).await,
             State::Record(ref mut st) => st.tick(&mut rbuffer, chunk),
             State::Analysys(st) => st.tick(),
         };
