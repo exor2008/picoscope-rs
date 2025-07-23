@@ -27,7 +27,7 @@ impl State {
         State::Record(Record::default())
     }
 
-    pub fn analysys() -> Self {
+    pub fn analysys() -> State {
         State::Analysys(Analysys)
     }
 }

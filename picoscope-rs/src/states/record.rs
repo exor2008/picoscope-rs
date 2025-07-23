@@ -1,6 +1,6 @@
 use super::State;
 use crate::ring_buffer::{RingBuffer, RBUFFER_SIZE};
-use defmt::debug;
+use defmt::info;
 
 #[derive(Default, Clone, Copy)]
 pub struct Record {
@@ -13,8 +13,8 @@ impl Record {
 
         self.counter += 1;
 
-        if self.counter == RBUFFER_SIZE - 1 {
-            debug!("Analysys state {}", self.counter);
+        if self.counter == RBUFFER_SIZE - 2 {
+            info!("Analysys state {}", self.counter);
             State::analysys()
         } else {
             State::Record(*self)

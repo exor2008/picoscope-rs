@@ -28,7 +28,13 @@ impl RingBuffer {
         self.advance();
     }
 
-    fn advance(&mut self) {
+    pub fn read(&mut self) -> [u8; BUFFER_SIZE] {
+        let chunk = self.buffer[self.current];
+        self.advance();
+        chunk
+    }
+
+    pub fn advance(&mut self) {
         self.current = match self.current {
             current if current == RBUFFER_SIZE - 1 => 0,
             current => current + 1,

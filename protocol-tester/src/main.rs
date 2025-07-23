@@ -21,17 +21,21 @@ async fn main(_spawner: Spawner) -> ! {
     let clk = p.PIN_10;
     let mut cs = Output::new(p.PIN_13, Level::High);
 
+    let mut led = Output::new(p.PIN_25, Level::Low);
+
     let mut cfg = Config::default();
     cfg.frequency = 10_000_000;
 
     let mut spi = Spi::new(p.SPI1, clk, mosi, miso, p.DMA_CH0, p.DMA_CH1, cfg);
 
     loop {
+        led.set_high();
         cs.set_low();
         for _ in 0..1000 {
             spi.write(&[0b10000100; 1024]).await.unwrap();
         }
         cs.set_high();
+        led.set_low();
         Timer::after_secs(10).await;
     }
 }

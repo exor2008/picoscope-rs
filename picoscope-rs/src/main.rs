@@ -68,8 +68,6 @@ fn main() -> ! {
 
 #[embassy_executor::task]
 async fn core1_task(mut pins_listener: PioPinsListener<'static, PIO0, 0>) -> ! {
-    info!("Started");
-
     loop {
         let buffer = unsafe { DBUFFER.get_active() };
         pins_listener.work(buffer).await;
@@ -79,6 +77,7 @@ async fn core1_task(mut pins_listener: PioPinsListener<'static, PIO0, 0>) -> ! {
 
 #[embassy_executor::task]
 async fn core0_task() {
+    info!("Core 0 started");
     let mut state = State::idle();
     let mut rbuffer = RingBuffer::new();
 
@@ -94,7 +93,7 @@ async fn core0_task() {
         state = match state {
             State::Idle(ref mut st) => st.tick(&mut rbuffer, chunk, &trigger).await,
             State::Record(ref mut st) => st.tick(&mut rbuffer, chunk),
-            State::Analysys(st) => st.tick(),
+            State::Analysys(st) => st.tick(&mut rbuffer).await,
         };
 
         unsafe { DBUFFER.reading_done() };

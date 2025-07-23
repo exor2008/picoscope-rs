@@ -3,8 +3,7 @@ use crate::{
     ring_buffer::RingBuffer,
     trigger::{Trigger, TriggerKind},
 };
-use defmt::debug;
-use embassy_time::Timer;
+use defmt::info;
 
 pub struct Idle;
 
@@ -16,14 +15,9 @@ impl Idle {
         trigger: &Trigger,
     ) -> State {
         rbuffer.write(chunk);
-
         if self.scan_for_triggers(chunk, trigger) {
             rbuffer.record();
-            debug!("Record state");
-            for c in chunk {
-                debug!("{:03b}", c);
-                Timer::after_millis(1).await;
-            }
+            info!("Record state");
 
             State::record()
         } else {
